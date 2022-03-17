@@ -24,7 +24,7 @@ public interface RestFiles {
 	 * project this will not be used).
      *
 	 * @return 204 if success.
-	 *         403 if the password is incorrect.
+	 *         403 if the token is invalid.
 	 * 		   400 otherwise.
 	 */
 	@POST
@@ -42,8 +42,8 @@ public interface RestFiles {
 	 * project this will not be used).
 	 * 
 	 * @return 204 if success; 
-	 *		   404 if the uniqueId does not exist.
-	 *         403 if the password is incorrect.
+	 *		   404 if the fileId does not exist.
+	 *         403 if the token is invalid.
 	 * 		   400 otherwise.
 	 */
 	@DELETE
@@ -59,8 +59,8 @@ public interface RestFiles {
 	 * project this will not be used).
 	 * 
 	 * @return 200 if success + contents (through redirect to the File server); 
-	 *		   404 if the uniqueId does not exist.
-	 *         403 if the password is incorrect.
+	 *		   404 if the fileId does not exist.
+	 *         403 if the token is invalid.
 	 * 		   400 otherwise.
 	 */
 	@GET
