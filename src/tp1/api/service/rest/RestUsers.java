@@ -34,6 +34,7 @@ public interface RestUsers {
 	
 	/**
 	 * Obtains the information on the user identified by name.
+	 * 
 	 * @param userId the userId of the user
 	 * @param password password of the user
 	 * @return 200 the user object, if the userId exists and password matches the existing
@@ -49,6 +50,7 @@ public interface RestUsers {
 	/**
 	 * Modifies the information of a user. Values of null in any field of the user will be 
 	 * considered as if the the fields is not to be modified (the id cannot be modified).
+	 * 
 	 * @param userId the userId of the user
 	 * @param password password of the user
 	 * @param user Updated information
@@ -65,8 +67,9 @@ public interface RestUsers {
 	User updateUser(@PathParam("userId") String userId, @QueryParam("password") String password, User user);
 	
 	/**
-	 * Deletes the user identified by userId. The spreadsheets owned by the user should be eventually removed (asynchronous
+	 * Deletes the user identified by userId. The files owned by the user should be eventually removed (asynchronous
 	 * deletion is ok).
+	 * 
 	 * @param nauserId the userId of the user
 	 * @param password password of the user
 	 * @return 200 the deleted user object, if the name exists and pwd matches the
@@ -82,6 +85,7 @@ public interface RestUsers {
 	/**
 	 * Returns the list of users for which the pattern is a substring of the name (of the user), case-insensitive.
 	 * The password of the users returned by the query must be set to the empty string "".
+	 * 
 	 * @param pattern substring to search
 	 * @return 200 when the search was successful, regardless of the number of hits (including 0 hits).
 	 *         400 otherwise.

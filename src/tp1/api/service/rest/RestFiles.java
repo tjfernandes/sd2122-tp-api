@@ -8,35 +8,38 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.core.MediaType;
 
-@Path(RestDirectory.PATH)
+@Path(RestFiles.PATH)
 public interface RestFiles {
 
 	static final String PATH="/files";
 
 	/**
-	 * Write a new file.
+	 * Write a file. If the file exists, overwrites the contents.
 	 * 
-	 * @param password - secret for accessing the file server (in the first 
-	 * project this is a system-wide constant).
+	 * @param fileId - unique id of the file. 
+	 * @param token - token for accessing the file server (in the first 
+	 * project this will not be used).
      *
-	 * @return 200 if success + unique id of the file.
+	 * @return 204 if success.
 	 *         403 if the password is incorrect.
 	 * 		   400 otherwise.
 	 */
 	@POST
-	@Path("/")
+	@Path("/{fileId}")
 	@Consumes(MediaType.APPLICATION_OCTET_STREAM)
 	@Produces(MediaType.APPLICATION_JSON)
-	String writeFile(@QueryParam("password") String password);
+	void writeFile(@PathParam("fileId") String fileId, byte[] data, 
+			@QueryParam("token") @DefaultValue("") String token);
 
 	/**
 	 * Delete an existing file.
 	 * 
 	 * @param fileId - unique id of the file. 
-	 * @param password - secret for accessing the file server (in the first 
-	 * project this is a system-wide constant).
+	 * @param token - token for accessing the file server (in the first 
+	 * project this will not be used).
 	 * 
 	 * @return 204 if success; 
 	 *		   404 if the uniqueId does not exist.
@@ -45,14 +48,15 @@ public interface RestFiles {
 	 */
 	@DELETE
 	@Path("/{fileId}")
-	void deleteFile(@PathParam("fileId") String fileId, @QueryParam("password") String password);
+	void deleteFile(@PathParam("fileId") String fileId, 
+			@QueryParam("token") @DefaultValue("") String token);
 
 	/**
 	 * Get the contents of the file. 
 	 * 
 	 * @param fileId - unique id of the file. 
-	 * @param password - secret for accessing the file server (in the first 
-	 * project this is a system-wide constant).
+	 * @param token - token for accessing the file server (in the first 
+	 * project this will not be used).
 	 * 
 	 * @return 200 if success + contents (through redirect to the File server); 
 	 *		   404 if the uniqueId does not exist.
@@ -62,6 +66,7 @@ public interface RestFiles {
 	@GET
 	@Path("/{fileId}")
 	@Produces(MediaType.APPLICATION_OCTET_STREAM)
-	byte[] getFile(@PathParam("fileId") String userId, @QueryParam("password") String password);
+	byte[] getFile(@PathParam("fileId") String fileId, 
+			@QueryParam("token") @DefaultValue("") String token);
 
 }

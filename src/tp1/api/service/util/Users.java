@@ -42,7 +42,7 @@ public interface Users {
 	Result<User> updateUser(String userId, String password, User user);
 	
 	/**
-	 * Deletes the user identified by userId. The spreadsheets owned by the user should be eventually removed (asynchronous
+	 * Deletes the user identified by userId. The users owned by the user should be eventually removed (asynchronous
 	 * deletion is ok).
 	 * @param nauserId the userId of the user
 	 * @param password password of the user

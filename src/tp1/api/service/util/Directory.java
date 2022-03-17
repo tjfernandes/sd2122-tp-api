@@ -2,21 +2,15 @@ package tp1.api.service.util;
 
 import java.util.*;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
 import tp1.api.FileInfo;
 
 public interface Directory {
 
 	/**
-	 * Write a new file. Only the owner can write the file.
+	 * Write a new version of a file. If the file exists, its contents are overwritten.
+	 * Only the owner (userId) can write the file.
+	 * 
+	 * A file resource will has the full path "userId/filename".
 	 * 
 	 * @param filename - name of the file.
 	 * @param data - contents of the file.
@@ -28,11 +22,12 @@ public interface Directory {
 	 *         403 if the password is incorrect.
 	 * 		   400 otherwise.
 	 */
-	Result<FileInfo> writeFile(String filename, byte []data, 
+	FileInfo writeFile(String filename, byte []data, 
 			String userId, String password);
 
 	/**
-	 * Delete an existing file. Only the owner can delete the file.
+	 * Delete an existing file ("userId/filename"). 
+	 * Only the owner (userId) can delete the file.
 	 * 
 	 * @param filename - name of the file.
 	 * @param userId - id of the user.
@@ -43,10 +38,16 @@ public interface Directory {
 	 *         403 if the password is incorrect.
 	 * 		   400 otherwise.
 	 */
-	Result<Void> deleteFile(String filename, String userId, String password);
+	void deleteFile(String filename, 
+			String userId, String password);
 
 	/**
-	 * Share a file with a user. Only the owner can share the file.
+	 * Share the file "userId/filename" with another user. 
+	 * Only the owner (userId) can share the file.
+	 * 
+	 * The operation succeeds if and only if the userId, userIdShare and userId/filename
+	 * exist and password is correct (note: if userIdShare already has access to the file,
+	 * the operation still succeeds).
 	 * 
 	 * @param filename - name of the file.
 	 * @param userId - id of the user.
@@ -62,7 +63,12 @@ public interface Directory {
 			String userIdShare, String password);
 
 	/**
-	 * Unshare a file with a user. Only the owner can share the file.
+	 * Unshare the file "userId/filename" with another user. 
+	 * Only the owner (userId) can unshare the file.
+	 * 
+	 * The operation succeeds if and only if the userId, userIdShare and userId/filename
+	 * exist and password is correct (note: if userIdShare does not have access to the file,
+	 * the operation still succeeds).
 	 * 
 	 * @param filename - name of the file.
 	 * @param userId - id of the user.
@@ -78,25 +84,27 @@ public interface Directory {
 			String userIdShare, String password);
 
 	/**
-	 * Get the contents of the file. 
-	 * Who can read a file: the owner and the user with whom the file has been shared.
+	 * Get the contents of the file "userId/filename". 
+	 * Who can read a file: the owner and the users with whom the file has been shared.
 	 * 
 	 * This operation should be implemented using HTTP redirect on success.
 	 * 
 	 * @param filename - name of the file.
 	 * @param userId - id of the user.
-	 * @param password - the password of the user.
+	 * @param accUserId - id of the user executing the operation.
+	 * @param password - the password of accUserId.
 	 * 
 	 * @return 200 if success + contents (through redirect to the File server); 
-	 *		   404 if the userId or filename does not exist.
+	 *		   404 if the userId or filename or accUserId does not exist.
 	 *         403 if the password is incorrect or the user cannot access the file.
 	 * 		   400 otherwise.
 	 */
-	Result<byte[]> getFile(String filename, String userId, String password);
+	Result<byte[]> getFile(String filename, String userId, 
+			String accUserId, String password);
 
 	/**
-	 * List the files a given user has access to - this includes both its own files
-	 * and the files shared with him. 
+	 * List the files a given user ("userId") has access to - this includes both its own files
+	 * and the files shared with her. 
 	 *  
 	 * @param userId - id of the user.
 	 * @param password - the password of the user.
