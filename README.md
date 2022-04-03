@@ -6,8 +6,8 @@ Web page: [https://preguica.github.io/sd2122/praticas2122/trab1/trab1](https://p
 ### **Version:** 1.0 - 3/abr
 Contents:
 * API interfaces for SOAP
-* Utility classes that can help those implementing the option that combines SOAP and REST in the same system - package `tp1.api.service.util` [https://github.com/smduarte/sd2021-tp1-api/tree/main/sd2021-tp1-api/src/tp1/api/service/util](https://github.com/smduarte/sd2021-tp1-api/tree/main/sd2122-tp1-api/src/tp1/api/service/util)
-ª Updated pom.xml with a dependency needed for SOAP clients
+* Utility classes that can help those implementing the option that combines SOAP and REST in the same system - package `tp1.api.service.util` 
+* Updated pom.xml with a dependency needed for SOAP clients
 
 ### **Version:** 0.9 - 16/mar - 23:00
 Contents:
