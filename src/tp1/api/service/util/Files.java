@@ -39,7 +39,7 @@ public interface Files {
 	 * 
 	 * @return OK if success + contents (through redirect to the File server); 
 	 *	   NOT_FOUND if the uniqueId does not exist.
-	 *         FORBIDDEN if the password is incorrect.
+	 *         FORBIDDEN if the token is incorrect.
 	 * 	   BAD_REQUEST otherwise.
 	 */
 	Result<byte[]> getFile(String fileId, String token);
