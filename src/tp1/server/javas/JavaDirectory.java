@@ -47,7 +47,9 @@ public class JavaDirectory implements Directory{
                 usersUri = discovery.knownUrisOf("users");
             
             var user = ((new RestUsersClient(usersUri[0])).getUser(userId, password));
-                
+
+            if (!user.isOK())
+                return Result.error(user.error());
 
         } catch (URISyntaxException e1) {
             e1.printStackTrace();
@@ -116,7 +118,6 @@ public class JavaDirectory implements Directory{
     public Result<byte[]> getFile(String filename, String userId, String accUserId, String password) {
         Log.info("Getting file " + filename + " from user " + userId + "...");
         Discovery discovery = Discovery.getInstance();
-
         
         try {
 
@@ -124,7 +125,14 @@ public class JavaDirectory implements Directory{
             while(usersUri == null)
                 usersUri = discovery.knownUrisOf("users");
             
-            var user = (new RestUsersClient(usersUri[0])).getUser(accUserId, password);
+            var result = (new RestUsersClient(usersUri[0])).getUser(accUserId, password);
+
+            if (!result.isOK())
+                return Result.error(result.error());
+            else Log.info("O user tá bacano\n\n\n");
+
+            //Log.info(result.error().toString()+"\n\n\n");
+
 
         } catch (URISyntaxException e1) {
             e1.printStackTrace();

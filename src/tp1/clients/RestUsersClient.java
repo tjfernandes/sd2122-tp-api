@@ -69,11 +69,28 @@ public class RestUsersClient extends RestClient implements Users {
 				.accept(MediaType.APPLICATION_JSON)
 				.get();
 
+
+
 		if( r.getStatus() == Status.OK.getStatusCode() && r.hasEntity() )
 			return Result.ok(r.readEntity(User.class));
 		else
 			System.out.println("Error, HTTP error status: " + r.getStatus() );
 
+
+
+		return Result.error(statusToErrorCode(r.getStatus()));
+	}
+
+	private Result.ErrorCode statusToErrorCode(int status) {
+		switch (status) {
+			case 409: return Result.ErrorCode.CONFLICT;
+			case 404: return Result.ErrorCode.NOT_FOUND;
+			case 400: return Result.ErrorCode.BAD_REQUEST;
+			case 403: return Result.ErrorCode.FORBIDDEN;
+			case 500: return Result.ErrorCode.INTERNAL_ERROR;
+			case 501: return Result.ErrorCode.NOT_IMPLEMENTED;
+			default: break;
+		}
 		return null;
 	}
 

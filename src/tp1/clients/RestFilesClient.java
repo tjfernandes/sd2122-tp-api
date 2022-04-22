@@ -17,6 +17,7 @@ public class RestFilesClient extends RestClient implements RestFiles {
         target = client.target(serverURI).path(RestFiles.PATH);
     }
 
+    @Override
     public void writeFile(String fileId, byte[] data, String token) {
         super.reTry(() -> {
             clt_writeFile(fileId, data, token);
@@ -24,7 +25,7 @@ public class RestFilesClient extends RestClient implements RestFiles {
         });
     }
 
-
+    @Override
     public void deleteFile(String fileId, String token) {
         super.reTry(() -> {
             clt_deleteFile(fileId, token);
@@ -32,6 +33,7 @@ public class RestFilesClient extends RestClient implements RestFiles {
             });
     }
 
+    @Override
     public byte[] getFile(String fileId, String token) {
         return super.reTry(() -> clt_getFile(fileId, token));
     }
