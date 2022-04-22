@@ -1,20 +1,17 @@
 package tp1.server.javas;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
-
-import org.glassfish.jersey.server.Uri;
 
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import tp1.api.FileInfo;
-import tp1.api.User;
 import tp1.api.service.rest.RestFiles;
 import tp1.api.service.util.Directory;
 import tp1.api.service.util.Result;
@@ -77,7 +74,7 @@ public class JavaDirectory implements Directory{
         
 
         String path = String.format("%s%s/%s", fileUri, RestFiles.PATH, fileId);
-        FileInfo fileInfo = new FileInfo(userId, filename, path, null);
+        FileInfo fileInfo = new FileInfo(userId, filename, path, new HashSet<>());
 
         FileInfo fInfo = userFiles.get(userId).get(filename);
 
@@ -145,8 +142,67 @@ public class JavaDirectory implements Directory{
 
     @Override
     public Result<Void> shareFile(String filename, String userId, String userIdShare, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        
+        Log.info("ShareFile " + filename + " of user " + userId + "with user " + userIdShare + "...");
+
+        URI[] filesUris = null;
+    
+        Discovery discovery = Discovery.getInstance();
+
+        String fileId = String.format("%s-%s", filename, userId);
+
+
+        try {
+
+            var usersUri = discovery.knownUrisOf("users");
+            while(usersUri == null)
+                usersUri = discovery.knownUrisOf("users");
+            
+            var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
+            var userShare = (new RestUsersClient(usersUri[0])).getUser(userIdShare, "");
+            
+            if(userShare.error() != Result.ErrorCode.FORBIDDEN)
+                return Result.error(Result.ErrorCode.NOT_FOUND);
+
+            if (!user.isOK())
+                return Result.error(user.error());
+
+            
+        } catch (URISyntaxException e1) {
+            e1.printStackTrace();
+        }
+
+        try {
+
+            filesUris = discovery.knownUrisOf("files");
+            while(filesUris == null)
+                filesUris = discovery.knownUrisOf("files");
+
+            // posteriormente definir o server de files
+            Result<byte[]> file = null;
+            for(URI uri: filesUris)
+                if (file == null)
+                    file = (new RestFilesClient(uri)).getFile(fileId, "token");
+            if (!file.isOK())
+                return Result.error(file.error());
+
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        
+
+
+        FileInfo fInfo = userFiles.get(userId).get(filename);
+
+        Set<String> shared = fInfo.getSharedWith();
+        if (shared == null)
+            shared = new HashSet<>();
+        shared.add(userIdShare);
+        fInfo.setSharedWith(shared);
+
+
+        return Result.ok();
     }
 
     @Override
@@ -203,11 +259,15 @@ public class JavaDirectory implements Directory{
 
 
         
-
+        
         if (fileInfo == null)
             return Result.error(ErrorCode.NOT_FOUND);
-        if (!fileInfo.getOwner().equals(accUserId))
+
+        Set<String> shared = fileInfo.getSharedWith();
+        
+        if(!shared.contains(accUserId) && !fileInfo.getOwner().equals(accUserId))
             return Result.error(ErrorCode.FORBIDDEN);
+
         var r = Response.temporaryRedirect(URI.create(fileInfo.getFileURL())).build();
         if (r != null)
             throw new WebApplicationException(r);
