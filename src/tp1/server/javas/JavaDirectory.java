@@ -2,6 +2,7 @@ package tp1.server.javas;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -234,31 +235,6 @@ public class JavaDirectory implements Directory{
         }
         
         FileInfo fileInfo = userFiles.get(userId).get(filename);
-
-        /*
-        String fileURL = "";
-        boolean fileExists = false;
-        boolean isShared = false;
-        Response r = null;
-        for (FileInfo fi : files) {
-            if (fi.getFilename().equals(filename)) {
-                fileExists = true;
-                fileURL = fi.getFileURL();
-                if (fi.getOwner().equals(accUserId)) {
-                    isShared = true;
-                    r = Response.temporaryRedirect(URI.create(fileURL)).build();
-                }
-                else if (fi.getSharedWith() != null) 
-                    if (fi.getSharedWith().contains(accUserId) || fi.getOwner().equals(accUserId)) {
-                        isShared = true;
-                        
-                    }
-                break;
-            }      
-        }*/
-
-
-        
         
         if (fileInfo == null)
             return Result.error(ErrorCode.NOT_FOUND);
@@ -276,8 +252,33 @@ public class JavaDirectory implements Directory{
 
     @Override
     public Result<List<FileInfo>> lsFile(String userId, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        Log.info("List files from user " + userId + "...");
+
+        Discovery discovery = Discovery.getInstance();
+        
+        try {
+
+            var usersUri = discovery.knownUrisOf("users");
+            while(usersUri == null)
+                usersUri = discovery.knownUrisOf("users");
+            
+            var result = (new RestUsersClient(usersUri[0])).getUser(userId, password);
+
+            if (!result.isOK())
+                return Result.error(result.error());
+
+
+        } catch (URISyntaxException e1) {
+            e1.printStackTrace();
+        }
+
+
+        // Faz isto in progress...
+        List<FileInfo> result = (List<FileInfo>) userFiles.get(userId).values();
+
+
+
+        return Result.ok(result);
     }
 
     
