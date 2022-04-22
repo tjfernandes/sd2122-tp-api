@@ -9,6 +9,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import org.glassfish.jersey.server.Uri;
+
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import tp1.api.FileInfo;
@@ -24,7 +26,7 @@ import tp1.server.Discovery;
 public class JavaDirectory implements Directory{
     
     private static final Logger Log = Logger.getLogger(JavaDirectory.class.getName());
-    private static Map<String, List<FileInfo>> userFiles = new HashMap<>();
+    private static Map<String, Map<String, FileInfo>> userFiles = new HashMap<>();
 
     public JavaDirectory() {}
 
@@ -37,8 +39,6 @@ public class JavaDirectory implements Directory{
         Discovery discovery = Discovery.getInstance();
 
         String fileId = String.format("%s-%s", filename, userId);
-
-
 
         try {
 
@@ -73,24 +73,18 @@ public class JavaDirectory implements Directory{
         }
         
         if (!userFiles.containsKey(userId))
-            userFiles.put(userId, new ArrayList<FileInfo>());
+            userFiles.put(userId, new HashMap<String, FileInfo>());
         
 
         String path = String.format("%s%s/%s", fileUri, RestFiles.PATH, fileId);
         FileInfo fileInfo = new FileInfo(userId, filename, path, null);
 
-        List<FileInfo> filesList = userFiles.get(userId);
-        boolean fileExists = false;
-        for(FileInfo fInfo: filesList) {
-            if (fInfo.getFilename().equals(filename)) {
-                fInfo = fileInfo;
-                fileExists = true;
-                break;
-            }  
-        }
+        FileInfo fInfo = userFiles.get(userId).get(filename);
 
-        if (!fileExists) 
-            filesList.add(fileInfo);
+        if (fInfo == null) { 
+            userFiles.get(userId).put(filename, fileInfo);
+        } else
+            fileInfo = fInfo;
         
          
         return Result.ok(fileInfo);
@@ -98,8 +92,55 @@ public class JavaDirectory implements Directory{
 
     @Override
     public Result<Void> deleteFile(String filename, String userId, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        
+        Log.info("Deleting " + filename + " of user " + userId + "...");
+
+        URI[] filesUris = null;
+    
+        Discovery discovery = Discovery.getInstance();
+
+        String fileId = String.format("%s-%s", filename, userId);
+
+
+
+        try {
+
+            var usersUri = discovery.knownUrisOf("users");
+            while(usersUri == null)
+                usersUri = discovery.knownUrisOf("users");
+            
+            var user = ((new RestUsersClient(usersUri[0])).getUser(userId, password));
+
+            if (!user.isOK())
+                return Result.error(user.error());
+
+        } catch (URISyntaxException e1) {
+            e1.printStackTrace();
+        }
+
+
+        try {
+
+            filesUris = discovery.knownUrisOf("files");
+            while(filesUris == null)
+                filesUris = discovery.knownUrisOf("files");
+
+            // posteriormente definir o server de files
+            Result<Void> file = null;
+            for(URI uri: filesUris)
+                if (file == null)
+                    file = (new RestFilesClient(uri)).deleteFile(fileId, "token");
+            if (!file.isOK())
+                return Result.error(file.error());
+
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        userFiles.get(userId).remove(filename);
+        
+
+        return Result.ok();
     }
 
     @Override
@@ -117,6 +158,7 @@ public class JavaDirectory implements Directory{
     @Override
     public Result<byte[]> getFile(String filename, String userId, String accUserId, String password) {
         Log.info("Getting file " + filename + " from user " + userId + "...");
+
         Discovery discovery = Discovery.getInstance();
         
         try {
@@ -129,17 +171,15 @@ public class JavaDirectory implements Directory{
 
             if (!result.isOK())
                 return Result.error(result.error());
-            else Log.info("O user tá bacano\n\n\n");
-
-            //Log.info(result.error().toString()+"\n\n\n");
 
 
         } catch (URISyntaxException e1) {
             e1.printStackTrace();
         }
         
-        List<FileInfo> files = userFiles.get(userId);
+        FileInfo fileInfo = userFiles.get(userId).get(filename);
 
+        /*
         String fileURL = "";
         boolean fileExists = false;
         boolean isShared = false;
@@ -155,17 +195,20 @@ public class JavaDirectory implements Directory{
                 else if (fi.getSharedWith() != null) 
                     if (fi.getSharedWith().contains(accUserId) || fi.getOwner().equals(accUserId)) {
                         isShared = true;
-                        r = Response.temporaryRedirect(URI.create(fileURL)).build();
+                        
                     }
                 break;
             }      
-        }
+        }*/
+
+
         
 
-        if (!fileExists)
+        if (fileInfo == null)
             return Result.error(ErrorCode.NOT_FOUND);
-        if (!isShared)
+        if (!fileInfo.getOwner().equals(accUserId))
             return Result.error(ErrorCode.FORBIDDEN);
+        var r = Response.temporaryRedirect(URI.create(fileInfo.getFileURL())).build();
         if (r != null)
             throw new WebApplicationException(r);
         return Result.ok();

@@ -18,19 +18,18 @@ public class DirectoryResource extends Resource implements RestDirectory{
 
     @Override
     public void deleteFile(String filename, String userId, String password) {
-        // TODO Auto-generated method stub
-        
+       super.handleResults(impl.deleteFile(filename, userId, password));
     }
 
     @Override
     public void shareFile(String filename, String userId, String userIdShare, String password) {
-        // TODO Auto-generated method stub
+        super.handleResults(impl.shareFile(filename, userId, userIdShare, password));
         
     }
 
     @Override
     public void unshareFile(String filename, String userId, String userIdShare, String password) {
-        // TODO Auto-generated method stub
+        super.handleResults(impl.unshareFile(filename, userId, userIdShare, password));
         
     }
 
@@ -41,8 +40,7 @@ public class DirectoryResource extends Resource implements RestDirectory{
 
     @Override
     public List<FileInfo> lsFile(String userId, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        return super.handleResults(impl.lsFile(userId, password));
     }
     
 }

@@ -6,9 +6,12 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import tp1.api.service.rest.RestFiles;
+import tp1.api.service.util.Files;
+import tp1.api.service.util.Result;
+
 import java.net.URI;
 
-public class RestFilesClient extends RestClient implements RestFiles {
+public class RestFilesClient extends RestClient implements Files {
 
     final WebTarget target;
 
@@ -18,48 +21,68 @@ public class RestFilesClient extends RestClient implements RestFiles {
     }
 
     @Override
-    public void writeFile(String fileId, byte[] data, String token) {
-        super.reTry(() -> {
-            clt_writeFile(fileId, data, token);
-            return null;
-        });
+    public Result<Void> writeFile(String fileId, byte[] data, String token) {
+        return super.reTry(() -> clt_writeFile(fileId, data, token));
     }
 
     @Override
-    public void deleteFile(String fileId, String token) {
-        super.reTry(() -> {
-            clt_deleteFile(fileId, token);
-            return null;
-            });
+    public Result<Void> deleteFile(String fileId, String token) {
+        return super.reTry(() -> clt_deleteFile(fileId, token));
     }
 
     @Override
-    public byte[] getFile(String fileId, String token) {
+    public Result<byte[]> getFile(String fileId, String token) {
         return super.reTry(() -> clt_getFile(fileId, token));
     }
 
-    private void clt_writeFile(String fileId, byte[] data, String token) {
-        target.path(fileId).request()
+    private Result<Void> clt_writeFile(String fileId, byte[] data, String token) {
+        Response r = target.path(fileId).request()
             .accept(MediaType.APPLICATION_JSON)
             .post(Entity.entity(data, MediaType.APPLICATION_OCTET_STREAM));
+        if( r.getStatus() == Status.NO_CONTENT.getStatusCode())
+            return Result.ok();
+        else
+            System.out.println("Error, HTTP error status: " + r.getStatus() );
+
+        return Result.error(statusToErrorCode(r.getStatus()));
     }
 
-    private void clt_deleteFile(String fileId, String token) {
-        target.path(fileId).request()
-            .accept(MediaType.APPLICATION_OCTET_STREAM)
+    private Result<Void> clt_deleteFile(String fileId, String token) {
+        Response r = target.path(fileId).request()
             .delete();
+
+        if( r.getStatus() == Status.NO_CONTENT.getStatusCode())
+            return Result.ok();
+        else
+            System.out.println("Error, HTTP error status: " + r.getStatus() );
+
+        return Result.error(statusToErrorCode(r.getStatus()));
     }
 
-    private byte[] clt_getFile(String fileId, String token) {
+    private Result<byte[]> clt_getFile(String fileId, String token) {
         Response r = target.path(fileId).request()
                     .accept(MediaType.APPLICATION_OCTET_STREAM)
                     .get();
 
         if( r.getStatus() == Status.OK.getStatusCode() && r.hasEntity() )
-            return r.readEntity(byte[].class);
+            return Result.ok(r.readEntity(byte[].class));
         else
             System.out.println("Error, HTTP error status: " + r.getStatus() );
-                
-        return null;
+
+        return Result.error(statusToErrorCode(r.getStatus()));
     }
+
+    private Result.ErrorCode statusToErrorCode(int status) {
+		switch (status) {
+			case 409: return Result.ErrorCode.CONFLICT;
+			case 404: return Result.ErrorCode.NOT_FOUND;
+			case 400: return Result.ErrorCode.BAD_REQUEST;
+			case 403: return Result.ErrorCode.FORBIDDEN;
+			case 500: return Result.ErrorCode.INTERNAL_ERROR;
+			case 501: return Result.ErrorCode.NOT_IMPLEMENTED;
+			default: break;
+		}
+		return null;
+	}
+
 }

@@ -48,16 +48,19 @@ public class JavaFiles implements Files {
 
 	@Override
 	public Result<Void> deleteFile(String fileId, String token) {
+		Log.info("deleteFile: " + fileId);
 		if (fileId == null)
             return Result.error(ErrorCode.BAD_REQUEST); 
-        if (!files.containsKey(fileId))
+        if (!files.containsKey(fileId)) {
             return Result.error(ErrorCode.NOT_FOUND);
+		}
         files.remove(fileId);
 		return Result.ok();
 	}
 
 	@Override
 	public Result<byte[]> getFile(String fileId, String token) {
+		Log.info("getFile: " + fileId);
         if (fileId == null)
             return Result.error(ErrorCode.BAD_REQUEST); 
 		if (!files.containsKey(fileId))

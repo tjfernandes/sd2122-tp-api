@@ -60,7 +60,7 @@ public class RestUsersClient extends RestClient implements Users {
 		else 
 			System.out.println("Error, HTTP error status: " + r.getStatus() );
 		
-		return null;
+		return Result.error(statusToErrorCode(r.getStatus()));
 	}
 
 	private Result<User> clt_getUser( String userId, String password ) {
@@ -79,19 +79,6 @@ public class RestUsersClient extends RestClient implements Users {
 
 
 		return Result.error(statusToErrorCode(r.getStatus()));
-	}
-
-	private Result.ErrorCode statusToErrorCode(int status) {
-		switch (status) {
-			case 409: return Result.ErrorCode.CONFLICT;
-			case 404: return Result.ErrorCode.NOT_FOUND;
-			case 400: return Result.ErrorCode.BAD_REQUEST;
-			case 403: return Result.ErrorCode.FORBIDDEN;
-			case 500: return Result.ErrorCode.INTERNAL_ERROR;
-			case 501: return Result.ErrorCode.NOT_IMPLEMENTED;
-			default: break;
-		}
-		return null;
 	}
 
 	private Result<User> clt_updateUser( String userId, String password, User user) {
@@ -130,7 +117,7 @@ public class RestUsersClient extends RestClient implements Users {
 		else
 			System.out.println("Error, HTTP error status: " + r.getStatus() );
 
-		return null;
+		return Result.error(statusToErrorCode(r.getStatus()));
 	}
 
 	private Result<User> clt_deleteUser ( String userId, String password ) {
@@ -161,6 +148,20 @@ public class RestUsersClient extends RestClient implements Users {
 		else 
 			System.out.println("Error, HTTP error status: " + r.getStatus() );
 		
+		return Result.error(statusToErrorCode(r.getStatus()));
+	}
+
+	
+	private Result.ErrorCode statusToErrorCode(int status) {
+		switch (status) {
+			case 409: return Result.ErrorCode.CONFLICT;
+			case 404: return Result.ErrorCode.NOT_FOUND;
+			case 400: return Result.ErrorCode.BAD_REQUEST;
+			case 403: return Result.ErrorCode.FORBIDDEN;
+			case 500: return Result.ErrorCode.INTERNAL_ERROR;
+			case 501: return Result.ErrorCode.NOT_IMPLEMENTED;
+			default: break;
+		}
 		return null;
 	}
 }
