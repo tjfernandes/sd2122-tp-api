@@ -165,6 +165,10 @@ public class JavaDirectory implements Directory{
                 usersUri = discovery.knownUrisOf("users");
             
             var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
+            var userShare = (new RestUsersClient(usersUri[0])).getUser(userIdShare, "");
+            
+            if(userShare.error() != Result.ErrorCode.FORBIDDEN)
+                return Result.error(Result.ErrorCode.NOT_FOUND);
 
             if (!user.isOK())
                 return Result.error(user.error());

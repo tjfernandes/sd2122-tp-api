@@ -10,6 +10,7 @@ import org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.Discarder;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.inject.Singleton;
 import tp1.api.FileInfo;
@@ -23,7 +24,7 @@ import tp1.server.Discovery;
 @Singleton
 public class JavaUsers implements Users {
 
-    public static Map<String,User> users = new HashMap<>();
+    public static Map<String,User> users = new ConcurrentHashMap<>();
 
 	private static final Logger Log = Logger.getLogger(JavaUsers.class.getName());
 
