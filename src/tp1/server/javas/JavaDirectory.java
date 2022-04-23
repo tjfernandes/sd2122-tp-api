@@ -1,5 +1,6 @@
 package tp1.server.javas;
 
+import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -135,6 +136,10 @@ public class JavaDirectory implements Directory{
             e.printStackTrace();
         }
 
+        Set<String> sharedUsers = userFiles.get(userId).get(filename).getSharedWith();
+        for (String id : sharedUsers)
+            userFiles.get(id).remove(filename);
+
         userFiles.get(userId).remove(filename);
         
 
@@ -160,10 +165,6 @@ public class JavaDirectory implements Directory{
                 usersUri = discovery.knownUrisOf("users");
             
             var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
-            var userShare = (new RestUsersClient(usersUri[0])).getUser(userIdShare, "");
-            
-            if(userShare.error() != Result.ErrorCode.FORBIDDEN)
-                return Result.error(Result.ErrorCode.NOT_FOUND);
 
             if (!user.isOK())
                 return Result.error(user.error());
@@ -199,17 +200,70 @@ public class JavaDirectory implements Directory{
         Set<String> shared = fInfo.getSharedWith();
         if (shared == null)
             shared = new HashSet<>();
-        shared.add(userIdShare);
-        fInfo.setSharedWith(shared);
-
+        if (!shared.contains(userIdShare))
+            shared.add(userIdShare);
+        if (!userFiles.get(userIdShare).containsKey(filename)) {
+            fInfo.setSharedWith(shared);
+            userFiles.get(userIdShare).put(filename, fInfo);
+        }
 
         return Result.ok();
     }
 
     @Override
     public Result<Void> unshareFile(String filename, String userId, String userIdShare, String password) {
-        // TODO Auto-generated method stub
-        return null;
+        Log.info("UnshareFile " + filename + " of user " + userId + "with user " + userIdShare + "...");
+
+        URI[] filesUris = null;
+    
+        Discovery discovery = Discovery.getInstance();
+
+        String fileId = String.format("%s-%s", filename, userId);
+
+
+        try {
+
+            var usersUri = discovery.knownUrisOf("users");
+            while(usersUri == null)
+                usersUri = discovery.knownUrisOf("users");
+            
+            var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
+
+            if (!user.isOK())
+                return Result.error(user.error());
+
+            
+        } catch (URISyntaxException e1) {
+            e1.printStackTrace();
+        }
+
+        try {
+
+            filesUris = discovery.knownUrisOf("files");
+            while(filesUris == null)
+                filesUris = discovery.knownUrisOf("files");
+
+            // posteriormente definir o server de files
+            Result<byte[]> file = null;
+            for(URI uri: filesUris)
+                if (file == null)
+                    file = (new RestFilesClient(uri)).getFile(fileId, "token");
+            if (!file.isOK())
+                return Result.error(file.error());
+
+        } catch (URISyntaxException e) {
+            e.printStackTrace();
+        }
+
+        if (!userId.equals(userIdShare)) {
+            FileInfo fInfo = userFiles.get(userId).get(filename);
+            Set<String> sharedUsers = fInfo.getSharedWith();
+            sharedUsers.remove(userIdShare);
+    
+            userFiles.get(userIdShare).remove(filename);
+        }
+
+        return Result.ok();
     }
 
     @Override
@@ -255,7 +309,7 @@ public class JavaDirectory implements Directory{
         Log.info("List files from user " + userId + "...");
 
         Discovery discovery = Discovery.getInstance();
-        
+            
         try {
 
             var usersUri = discovery.knownUrisOf("users");
@@ -264,20 +318,31 @@ public class JavaDirectory implements Directory{
             
             var result = (new RestUsersClient(usersUri[0])).getUser(userId, password);
 
-            if (!result.isOK())
+            if (!result.isOK()) {
                 return Result.error(result.error());
+            }
+                
 
 
         } catch (URISyntaxException e1) {
             e1.printStackTrace();
         }
 
+        if (!userFiles.containsKey(userId)) {
+            return Result.ok(new ArrayList<>());
+        }
+        var files = userFiles.get(userId).values();
+        List<FileInfo> result = new ArrayList<FileInfo>(); 
 
-        // Faz isto in progress...
-        List<FileInfo> result = (List<FileInfo>) userFiles.get(userId).values();
-
-
-
+        if (files.size() == 0) {
+            Log.info("O " + userId + " não tem files\n\n\n");
+            return Result.ok(result);
+        }
+            
+        
+        for (FileInfo fInfo : files)
+            result.add(fInfo);
+        
         return Result.ok(result);
     }
 

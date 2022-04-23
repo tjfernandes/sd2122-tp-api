@@ -10,6 +10,7 @@ import org.glassfish.jersey.client.ClientProperties;
 import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.client.Client;
 import jakarta.ws.rs.client.ClientBuilder;
+import tp1.api.service.util.Result;
 
 public class RestClient {
 	private static Logger Log = Logger.getLogger(RestClient.class.getName());
@@ -46,6 +47,24 @@ public class RestClient {
 				x.printStackTrace();
 				break;
 			}
+		return null;
+	}
+
+	/**
+	 * Converts status code to respective enum ErrorCode
+	 * @param status
+	 * @return
+	 */
+	protected Result.ErrorCode statusToErrorCode(int status) {
+		switch (status) {
+			case 409: return Result.ErrorCode.CONFLICT;
+			case 404: return Result.ErrorCode.NOT_FOUND;
+			case 400: return Result.ErrorCode.BAD_REQUEST;
+			case 403: return Result.ErrorCode.FORBIDDEN;
+			case 500: return Result.ErrorCode.INTERNAL_ERROR;
+			case 501: return Result.ErrorCode.NOT_IMPLEMENTED;
+			default: break;
+		}
 		return null;
 	}
 

@@ -1,16 +1,24 @@
 package tp1.server.javas;
 
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
+
+import org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.Discarder;
+
 import java.util.Map;
+import java.util.Set;
 
 import jakarta.inject.Singleton;
+import tp1.api.FileInfo;
 import tp1.api.User;
 import tp1.api.service.util.Result;
 import tp1.api.service.util.Users;
 import tp1.api.service.util.Result.ErrorCode;
+import tp1.clients.RestDirectoryClient;
+import tp1.server.Discovery;
 
 @Singleton
 public class JavaUsers implements Users {
@@ -114,6 +122,30 @@ public class JavaUsers implements Users {
 			Log.info("Password is incorrect.");
 			return Result.error( ErrorCode.FORBIDDEN );
 		}
+
+		//remove files from shared
+
+		Discovery discovery = Discovery.getInstance();
+
+		try {
+			var directoryURIs = discovery.knownUrisOf("directory");
+			while( directoryURIs == null )
+				directoryURIs = discovery.knownUrisOf("directory");
+
+			var dirClient = new RestDirectoryClient(directoryURIs[0]);
+
+			List<FileInfo> filesInfo = dirClient.lsFile(userId, password).value();
+			for(FileInfo fInfo : filesInfo) {
+				dirClient.deleteFile(fInfo.getFilename(), userId, password);
+			}
+			
+		} catch (URISyntaxException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		
+
 		return Result.ok(users.remove(userId));
     }
 
