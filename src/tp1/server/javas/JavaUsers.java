@@ -1,25 +1,21 @@
 package tp1.server.javas;
 
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
-import org.glassfish.jaxb.runtime.v2.runtime.unmarshaller.Discarder;
-
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jakarta.inject.Singleton;
 import tp1.api.FileInfo;
 import tp1.api.User;
+import tp1.api.service.util.Directory;
 import tp1.api.service.util.Result;
 import tp1.api.service.util.Users;
 import tp1.api.service.util.Result.ErrorCode;
-import tp1.clients.RestDirectoryClient;
-import tp1.server.Discovery;
+import tp1.clients.DirectoryClientFactory;
 
 @Singleton
 public class JavaUsers implements Users {
@@ -126,28 +122,23 @@ public class JavaUsers implements Users {
 
 		//remove files from shared
 
-		Discovery discovery = Discovery.getInstance();
-
+		Directory dirClient = null;
 		try {
-			var directoryURIs = discovery.knownUrisOf("directory");
-			while( directoryURIs == null )
-				directoryURIs = discovery.knownUrisOf("directory");
-
-			var dirClient = new RestDirectoryClient(directoryURIs[0]);
-
-			List<FileInfo> filesInfo = dirClient.lsFile(userId, password).value();
-			for(FileInfo fInfo : filesInfo) {
-				dirClient.deleteFile(fInfo.getFilename(), userId, password);
-			}
-			
-		} catch (URISyntaxException e) {
+			dirClient = DirectoryClientFactory.getClient();
+		} catch (MalformedURLException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
-		
+		List<FileInfo> filesInfo = dirClient.lsFile(userId, password).value();
+		for(FileInfo fInfo : filesInfo) {
+			dirClient.deleteFile(fInfo.getFilename(), userId, password);
+		}
 
-		return Result.ok(users.remove(userId));
+		User user = users.remove(userId);
+		System.out.println(user.getUserId());
+		
+		return Result.ok(user);
     }
 
 	@Override

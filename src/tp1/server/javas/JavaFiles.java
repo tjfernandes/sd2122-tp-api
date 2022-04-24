@@ -54,6 +54,7 @@ public class JavaFiles implements Files {
         if (!files.containsKey(fileId)) {
             return Result.error(ErrorCode.NOT_FOUND);
 		}
+		
         files.remove(fileId);
 		return Result.ok();
 	}

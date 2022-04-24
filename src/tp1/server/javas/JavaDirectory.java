@@ -1,6 +1,5 @@
 package tp1.server.javas;
 
-import java.io.File;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -18,8 +17,8 @@ import tp1.api.service.rest.RestFiles;
 import tp1.api.service.util.Directory;
 import tp1.api.service.util.Result;
 import tp1.api.service.util.Result.ErrorCode;
-import tp1.clients.RestFilesClient;
-import tp1.clients.RestUsersClient;
+import tp1.clients.FilesClientFactory;
+import tp1.clients.UsersClientFactory;
 import tp1.server.Discovery;
 
 public class JavaDirectory implements Directory{
@@ -33,49 +32,31 @@ public class JavaDirectory implements Directory{
     public Result<FileInfo> writeFile(String filename, byte[] data, String userId, String password) {
         Log.info("Writing " + filename + " of user " + userId + "...");
 
-        URI[] filesUris = null;
-    
-        Discovery discovery = Discovery.getInstance();
-
         String fileId = String.format("%s-%s", filename, userId);
 
-        try {
-
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var user = ((new RestUsersClient(usersUri[0])).getUser(userId, password));
-
-            if (!user.isOK())
-                return Result.error(user.error());
-
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var user = UsersClientFactory.getClient().getUser(userId, password);
+        if (!user.isOK()) {
+            return Result.error(user.error());
         }
 
-        URI fileUri = null;
-
+        URI serverURI = null;
         try {
-
-            filesUris = discovery.knownUrisOf("files");
-            while(filesUris == null)
-                filesUris = discovery.knownUrisOf("files");
-
-            // posteriormente definir o server de files
-            fileUri = filesUris[0];
-            RestFilesClient fileClient = new RestFilesClient(fileUri);
-            fileClient.writeFile(fileId, data, "token");
-            
+            serverURI = Discovery.getInstance().knownUrisOf("files")[0];
         } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
+
+        var file = FilesClientFactory.getClient(serverURI);
+        var result = file.writeFile(fileId, data, "token");
+        if (!result.isOK()) {
+            return Result.error(result.error());
+        }
+
         if (!userFiles.containsKey(userId))
             userFiles.put(userId, new HashMap<String, FileInfo>());
-        
-
-        String path = String.format("%s%s/%s", fileUri, RestFiles.PATH, fileId);
+    
+        String path = String.format("%s%s/%s", serverURI, RestFiles.PATH, fileId);
         FileInfo fileInfo = new FileInfo(userId, filename, path, new HashSet<>());
 
         FileInfo fInfo = userFiles.get(userId).get(filename);
@@ -84,7 +65,6 @@ public class JavaDirectory implements Directory{
             userFiles.get(userId).put(filename, fileInfo);
         } else
             fileInfo = fInfo;
-        
          
         return Result.ok(fileInfo);
     }
@@ -94,51 +74,31 @@ public class JavaDirectory implements Directory{
         
         Log.info("Deleting " + filename + " of user " + userId + "...");
 
-        URI[] filesUris = null;
-    
-        Discovery discovery = Discovery.getInstance();
-
         String fileId = String.format("%s-%s", filename, userId);
 
-
-
-        try {
-
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var user = ((new RestUsersClient(usersUri[0])).getUser(userId, password));
-
-            if (!user.isOK())
-                return Result.error(user.error());
-
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var user = UsersClientFactory.getClient().getUser(userId, password);
+        if (!user.isOK()) {
+            return Result.error(user.error());
         }
 
-
+        URI serverURI = null;
         try {
-
-            filesUris = discovery.knownUrisOf("files");
-            while(filesUris == null)
-                filesUris = discovery.knownUrisOf("files");
-
-            // posteriormente definir o server de files
-            Result<Void> file = null;
-            for(URI uri: filesUris)
-                if (file == null)
-                    file = (new RestFilesClient(uri)).deleteFile(fileId, "token");
-            if (!file.isOK())
-                return Result.error(file.error());
-
+            serverURI = Discovery.getInstance().knownUrisOf("files")[0];
         } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
+        var file = FilesClientFactory.getClient(serverURI).deleteFile(fileId, "token");
+        if (!file.isOK()) {
+            return Result.error(file.error());
+        }
+
+
+
         Set<String> sharedUsers = userFiles.get(userId).get(filename).getSharedWith();
         for (String id : sharedUsers)
-            userFiles.get(id).remove(filename);
+             userFiles.get(id).remove(filename);
 
         userFiles.get(userId).remove(filename);
         
@@ -151,53 +111,31 @@ public class JavaDirectory implements Directory{
         
         Log.info("ShareFile " + filename + " of user " + userId + "with user " + userIdShare + "...");
 
-        URI[] filesUris = null;
-    
-        Discovery discovery = Discovery.getInstance();
 
         String fileId = String.format("%s-%s", filename, userId);
 
 
-        try {
-
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
-            var userShare = (new RestUsersClient(usersUri[0])).getUser(userIdShare, "");
-            
-            if(userShare.error() != Result.ErrorCode.FORBIDDEN)
-                return Result.error(Result.ErrorCode.NOT_FOUND);
-
-            if (!user.isOK())
-                return Result.error(user.error());
-
-            
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var user = UsersClientFactory.getClient().getUser(userId, password);
+        if (!user.isOK()) {
+            return Result.error(user.error());
         }
+        
+        var userShare = UsersClientFactory.getClient().getUser(userIdShare, "");
+        if(userShare.error() == Result.ErrorCode.NOT_FOUND)
+            return Result.error(Result.ErrorCode.NOT_FOUND);
 
+        URI serverURI = null;
         try {
-
-            filesUris = discovery.knownUrisOf("files");
-            while(filesUris == null)
-                filesUris = discovery.knownUrisOf("files");
-
-            // posteriormente definir o server de files
-            Result<byte[]> file = null;
-            for(URI uri: filesUris)
-                if (file == null)
-                    file = (new RestFilesClient(uri)).getFile(fileId, "token");
-            if (!file.isOK())
-                return Result.error(file.error());
-
+            serverURI = Discovery.getInstance().knownUrisOf("files")[0];
         } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
         }
 
-        
-
+        var file = FilesClientFactory.getClient(serverURI).getFile(fileId, "token");
+        if (!file.isOK()) {
+            return Result.error(file.error());
+        }
 
         FileInfo fInfo = userFiles.get(userId).get(filename);
 
@@ -218,45 +156,25 @@ public class JavaDirectory implements Directory{
     public Result<Void> unshareFile(String filename, String userId, String userIdShare, String password) {
         Log.info("UnshareFile " + filename + " of user " + userId + "with user " + userIdShare + "...");
 
-        URI[] filesUris = null;
-    
-        Discovery discovery = Discovery.getInstance();
-
         String fileId = String.format("%s-%s", filename, userId);
 
 
-        try {
-
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var user = (new RestUsersClient(usersUri[0]).getUser(userId, password));
-
-            if (!user.isOK())
-                return Result.error(user.error());
-
-            
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var user = UsersClientFactory.getClient().getUser(userId, password);
+        if (!user.isOK()) {
+            return Result.error(user.error());
         }
 
+        URI serverURI = null;
         try {
-
-            filesUris = discovery.knownUrisOf("files");
-            while(filesUris == null)
-                filesUris = discovery.knownUrisOf("files");
-
-            // posteriormente definir o server de files
-            Result<byte[]> file = null;
-            for(URI uri: filesUris)
-                if (file == null)
-                    file = (new RestFilesClient(uri)).getFile(fileId, "token");
-            if (!file.isOK())
-                return Result.error(file.error());
-
+            serverURI = Discovery.getInstance().knownUrisOf("files")[0];
         } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
             e.printStackTrace();
+        }
+
+        var file = FilesClientFactory.getClient(serverURI).getFile(fileId, "token");
+        if (!file.isOK()) {
+            return Result.error(file.error());
         }
 
         if (!userId.equals(userIdShare)) {
@@ -274,22 +192,11 @@ public class JavaDirectory implements Directory{
     public Result<byte[]> getFile(String filename, String userId, String accUserId, String password) {
         Log.info("Getting file " + filename + " from user " + userId + "...");
 
-        Discovery discovery = Discovery.getInstance();
-        
-        try {
+        String fileId = String.format("%s-%s", filename, userId);
 
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var result = (new RestUsersClient(usersUri[0])).getUser(accUserId, password);
-
-            if (!result.isOK())
-                return Result.error(result.error());
-
-
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var result = UsersClientFactory.getClient().getUser(accUserId, password);
+        if (!result.isOK()) {
+            return Result.error(result.error());
         }
         
         FileInfo fileInfo = userFiles.get(userId).get(filename);
@@ -302,52 +209,50 @@ public class JavaDirectory implements Directory{
         if(!shared.contains(accUserId) && !fileInfo.getOwner().equals(accUserId))
             return Result.error(ErrorCode.FORBIDDEN);
 
-        var r = Response.temporaryRedirect(URI.create(fileInfo.getFileURL())).build();
-        if (r != null)
+        URI serverURI = null;
+        try {
+            serverURI = Discovery.getInstance().knownUrisOf("directory")[0];
+        } catch (URISyntaxException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+
+        URI uri = URI.create(fileInfo.getFileURL().split("/files")[0]);
+        if (serverURI.toString().endsWith("rest") && uri.toString().endsWith("rest")) {
+            var r = Response.temporaryRedirect(URI.create(fileInfo.getFileURL())).build();
             throw new WebApplicationException(r);
-        return Result.ok();
+        }
+        
+        var res = FilesClientFactory.getClient(uri).getFile(fileId, "token");
+        if (res.isOK())
+            return res;
+        return Result.error(res.error());
     }
 
     @Override
     public Result<List<FileInfo>> lsFile(String userId, String password) {
         Log.info("List files from user " + userId + "...");
-
-        Discovery discovery = Discovery.getInstance();
             
-        try {
-
-            var usersUri = discovery.knownUrisOf("users");
-            while(usersUri == null)
-                usersUri = discovery.knownUrisOf("users");
-            
-            var result = (new RestUsersClient(usersUri[0])).getUser(userId, password);
-
-            if (!result.isOK()) {
-                return Result.error(result.error());
-            }
-                
-
-
-        } catch (URISyntaxException e1) {
-            e1.printStackTrace();
+        var result = UsersClientFactory.getClient().getUser(userId, password);
+        if (!result.isOK()) {
+            return Result.error(result.error());
         }
 
         if (!userFiles.containsKey(userId)) {
             return Result.ok(new ArrayList<>());
         }
         var files = userFiles.get(userId).values();
-        List<FileInfo> result = new ArrayList<FileInfo>(); 
+        List<FileInfo> res = new ArrayList<FileInfo>(); 
 
         if (files.size() == 0) {
-            Log.info("O " + userId + " não tem files\n\n\n");
-            return Result.ok(result);
+            return Result.ok(res);
         }
             
         
         for (FileInfo fInfo : files)
-            result.add(fInfo);
+            res.add(fInfo);
         
-        return Result.ok(result);
+        return Result.ok(res);
     }
 
     
